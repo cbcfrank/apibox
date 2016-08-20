@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html ng-app="ApiBox">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="author" content="https://github.com/cbcfrank" />
+<title>ApiBox - A Simple Api Sandbox for any App/Service based on the http</title>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="Public/libs/jquery-1.11.1.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="Public/libs/bootstrap.min.js"></script>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="Public/css/bootstrap.min.css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="Public/libs/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="Public/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <script src="Public/libs/angular-1.2.25.js"></script>
+
+</head>
+<body>
+
+    <!-- header -->
+    <nav class="navbar navbar-default" role="navigation"><div class="navbar-header"><a class="navbar-brand" href="#">ApiBox - 基于http的微服务沙箱</a></div>   
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row" ng-controller="intfController as intfCtrl">
+            <div class="col-md-4">
+                <!-- main -->
+                <div class="form-group">
+                    <label>Resource(接口对象)</label>
+                    <select class="form-control" ng-model="intfObject" ng-options="intfobj.text for intfobj in intf_object">
+                        <option value="">--choose--</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Action(动作)</label>
+                    <select class="form-control" ng-model="intfName" ng-options="intfname.name for intfname in intf_name[intfObject.id]">
+                        <option value="">--choose--</option>
+                    </select>
+                </div>
+                {{intfName.desc}}
+
+                <div class="form-group">
+                    <label>Method(方法)</label>
+                    <input type="text" class="form-control" ng-model="intfName.method" readonly />
+                </div>
+				                          
+                <div class="form-group"><label>---------parameters is at below---------</label></div>
+                
+				<!--  <form action="{{intfName.url}}" method="{{intfName.method}}"> -->                
+                <div class="form-group" ng-repeat="param in intfName.param">
+                	{{param.name}}-<label>{{param.optional===true?'':'[必填]'}}</label>
+                    <pre>{{param.desc}}</pre>
+                    <textarea ng-model="param.value" class="form-control" rows="10" ng-if="param.ui=='textarea'"></textarea>
+                	<input type="text" class="form-control" ng-model="param.value"  ng-if="param.ui!=='textarea'"/>
+                </div>
+                <!--<div class="form-group">cid<input type="text"/>uid<input type="text"/>webkey<input type="text"/></div>-->
+                <button type="submit" class="btn btn-primary" ng-click="callIntf();">提交</button> 
+                <br/><br/><br/><br/><br/>
+                <!--  </form> -->
+                
+                <!-- -- -->
+            </div>
+
+            <!-- 结果 -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>结果返回</label>
+                    <textarea ng-model="intfName.result" class="form-control" rows="20" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- footer -->
+    <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation" style="text-align:center; display:table-cell; vertical-align:middle;">  &copy; <a href='https://github.com/cbcfrank/apibox'>https://github.com/cbcfrank/apibox</a></nav>
+</body>
+</html>
+<script>
+(function(){
+    var app = angular.module('ApiBox',[]);
+  	var uri = 'http://yourdomain';
+/*
+
+    app.filter('nl2br', function() {
+        var span = document.createElement('span');
+        return function(input) {
+            if (!input) return input;
+            var lines = input.split('\n');
+
+            for (var i = 0; i < lines.length; i++) {
+                span.innerText = lines[i];
+                span.textContent = lines[i];  //for Firefox
+                lines[i] = span.innerHTML;
+            }
+            return lines.join('<br />');
+        }
+    });
+
+    app.filter('breakFilter', function() {
+        return function(text) {
+            return text ? text.replace(/\n/g, '<br />') : '';
+        }
+    });
+*/
+
+    app.controller('intfController', function($scope, $http,  $log, $location){
+
+        //api对象
+        $scope.intf_object = [
+            {id:1, name:'Topic', text:'Topic(文章主题)', seq:1},
+            {id:2, name:'Author', text:'Author(作者)', seq:2},
+
+        ];
+
+        //api 名称，接口名称
+        $scope.intf_name = {
+            1:[
+	            {id:1001,  name: 'list topic(文章主题列表)', url:'/Topic/list', method: 'GET', desc:'Here is description.(这里可以放该接口的介绍)',
+	            		   param:[
+             					{name:'page', desc:'page(当前页数)，如不填默认为1', optional:true, value:''},
+             					{name:'pagesize', desc:'pagesize(每页显示的条数)', optional:false, value:'20'}
+         				   ], result:''},
+	            {id:1002,  name: 'new topic(创建新的主题)', url:'/Topic/new', method: 'POST', desc:'',
+       		   			   param:[
+                               {name:'name', desc:'主题名称', optional:false, value:''},
+                               {name:'author', desc:'主题作者', optional:false, value:''},
+                               {name:'content', desc:'正文', optional:false, value:''},
+   				   		   ], result:''},
+	       	  ],
+            2:[
+               {id:2001,  name: 'search author(检索作者)', url:'/Author/search', method: 'GET', desc:'',
+                   param:[
+                       {name:'author', desc:'author name (作者名称)', optional:false, value:''},
+                   ],result:''},
+               {id:2002,  name: 'like author(点赞作者)', url:'/Author/like', method: 'GET', desc:'',
+                   param:[
+                       {name:'authorid', desc:'作者ID', optional:false, value:''},
+                       {name:'readerid', desc:'读者ID', optional:false, value:''}
+                   ],result:''}
+           ],
+        };
+
+        // 调用接口
+        $scope.callIntf = function(){       	
+        	var postparamstr = {};
+            angular.forEach($scope.intfName.param, function(value, key) {
+            	postparamstr[value.name] = value.value;
+            });
+            console.log(postparamstr);
+            console.log(angular.toJson(postparamstr));
+            console.log($.param(postparamstr));
+
+            var res = '-------------URL------------- \n' + $location.absUrl() + $scope.intfName.url;
+            res = res + '\n\n -------------method------------\n' + $scope.intfName.method;                                
+            res = res + '\n\n -------------param-------------\n' + angular.toJson(postparamstr, true);  
+            $scope.intfName.result = res;
+
+
+            $http({method: $scope.intfName.method, url: uri+$scope.intfName.url, params:postparamstr}).success(function(data, status, headers, config) {
+            //$http({method: $scope.intfName.method, url: uri+$scope.intfName.url, data:$.param(postparamstr), headers:{'Content-Type': 'application/x-www-form-urlencoded'}}).success(function(data, status, headers, config) {
+                $scope.intfName.result = $scope.intfName.result + '\n\n -------------result-------------\n' + angular.toJson(data, true);;
+            }).error(function(data, status, headers, config) {
+                $scope.intfName.result = $scope.intfName.result + '\n\n -------------result-------------\n' + angular.toJson(data, true);
+            });            
+            /*
+            switch ($scope.intfName.method){
+                case 'GET':
+                    $http.get(uri+$scope.intfName.url+'?'+postparamstr).success(function(data, status, headers, config) {
+                                $scope.intfName.result = $scope.intfName.result + '\n\n -------------result-------------\n' + angular.toJson(data, true);;
+                            }).error(function(data, status, headers, config) {
+                                $scope.intfName.result = $scope.intfName.result + '\n\n -------------result-------------\n' + angular.toJson(data, true);
+                            });
+                    break;
+                case 'POST':
+                    break;
+                case 'PUT':
+                    break;
+                case 'DELETE':
+                    break;
+            }
+            */
+        };
+
+        //$scope.intfObject = $scope.intf_object[1];
+        $scope.intfObject = [];
+        $scope.intfName = [];
+        //$scope.intfParam = '';
+        //$scope.intfResult = '还未调用';
+    });
+
+    console.log("I'm from https://github.com/cbcfrank/apibox . Hope can help you!");
+})();
+</script>
