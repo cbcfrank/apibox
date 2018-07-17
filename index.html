@@ -1,199 +1,374 @@
+
 <!DOCTYPE html>
-<html ng-app="ApiBox">
+<html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta name="author" content="https://github.com/cbcfrank" />
-<title>ApiBox - A Simple Api Sandbox for any App/Service based on the http</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="author" content="https://github.com/cbcfrank" />
+    <title>ApiBox - A Simple Api Sandbox for any App/Service based on the http</title>
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="Public/libs/jquery-1.11.1.min.js"></script>
+    <script src="static/libs/jquery-1.11.1.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="Public/libs/bootstrap.min.js"></script>
+    <script src="static/libs/bootstrap.min.js"></script>
 
     <!-- Bootstrap -->
-    <link rel="stylesheet" href="Public/css/bootstrap.min.css">
+    <link rel="stylesheet" href="static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="static/css/jquery.json-viewer.css">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
-    <script src="Public/libs/html5shiv/3.7.2/html5shiv.min.js"></script>
-    <script src="Public/libs/respond.js/1.4.2/respond.min.js"></script>
+    <script src="static/libs/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="static/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
-    <script src="Public/libs/angular-1.2.25.js"></script>
+    <script src="static/libs/vue.js"></script>
+    <script src="static/libs/axios.min.js"></script>
+    <script src="static/libs/des.js"></script>
+    <script src="static/libs/jquery.json-viewer.js"></script>
+    <script src="static/libs/md5.js"></script>
+    <script src="static/libs/utils.js"></script>
 
 </head>
 <body>
 
+<div id="app">
     <!-- header -->
-    <nav class="navbar navbar-default" role="navigation"><div class="navbar-header"><a class="navbar-brand" href="#">ApiBox - 基于http的微服务沙箱</a></div>   
+    <nav class="navbar navbar-default" role="navigation">
+        <div class="navbar-header"><a class="navbar-brand" href="#">ApiBox - 基于http的微服务沙箱</a></div>
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav">
+                <li v-bind:class="{ active: current_proj=='demo' }" v-on:click="change_proj('demo')"><a href="#">DEMO</a></li>
+                <li v-bind:class="{ active: current_proj=='sample' }" v-on:click="change_proj('sample')"><a href="#">SAMPLE</a></li>
+            </ul>
+        </div><!-- /.navbar-collapse -->
     </nav>
 
     <div class="container-fluid">
-        <div class="row" ng-controller="intfController as intfCtrl">
+        <div class="row">
             <div class="col-md-4">
                 <!-- main -->
                 <div class="form-group">
-                    <label>Resource(接口对象)</label>
-                    <select class="form-control" ng-model="intfObject" ng-options="intfobj.text for intfobj in intf_object">
-                        <option value="">--choose--</option>
+                    <label>资源对象</label>
+                    <select v-model="object" class="form-control">
+                        <option v-for="obj in objectlist" v-bind:value="obj.value">
+                            {{ obj.text }}
+                        </option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Action(动作)</label>
-                    <select class="form-control" ng-model="intfName" ng-options="intfname.name for intfname in intf_name[intfObject.id]">
-                        <option value="">--choose--</option>
+                    <label>对象方法</label>
+                    <select v-model="method" class="form-control">
+                        <option v-for="vo in methodlist" v-bind:value="vo.name">
+                            {{ vo.text }}
+                        </option>
                     </select>
                 </div>
-                {{intfName.desc}}
+                <!--{{intfName.desc}}-->
 
                 <div class="form-group">
-                    <label>Method(方法)</label>
-                    <input type="text" class="form-control" ng-model="intfName.method" readonly />
+                    <label>HTTP Method</label>
+                    <input type="text" class="form-control" v-model="http_method" readonly />
                 </div>
-				                          
-                <div class="form-group"><label>---------parameters is at below---------</label></div>
-                
-				<!--  <form action="{{intfName.url}}" method="{{intfName.method}}"> -->                
-                <div class="form-group" ng-repeat="param in intfName.param">
-                	{{param.name}}-<label>{{param.optional===true?'':'[必填]'}}</label>
-                    <pre>{{param.desc}}</pre>
-                    <textarea ng-model="param.value" class="form-control" rows="10" ng-if="param.ui=='textarea'"></textarea>
-                	<input type="text" class="form-control" ng-model="param.value"  ng-if="param.ui!=='textarea'"/>
+
+                <div class="form-group" v-show="custom_headers.length!=0" v-on:click="custom_headers_show = !custom_headers_show">
+                    <label>---------HTTP HEADERS---------(点击展示)</label>
                 </div>
+                <div v-if="custom_headers_show">
+                    <div class="form-group" v-for="header in custom_headers">
+                        {{ header.name }}：<input type="text" v-model="header.value" class="form-control" >
+                    </div>
+                </div>
+
+                <div class="form-group" v-show="current_proj!=='apigateway'">
+                    <label>---------ENCRYPTION KEY---------</label>
+                </div>
+                <div v-show="current_proj!=='apigateway'">
+                    <div class="form-group">
+                        <input type="text" v-model="encryption_key" class="form-control" >
+                    </div>
+                </div>
+
+                <div class="form-group" v-show="api_public_params.length!=0" v-on:click="api_public_params_show = !api_public_params_show">
+                    <label>---------公用参数---------(点击展示)</label>
+                </div>
+                <div v-if="api_public_params_show">
+                    <div class="form-group" v-for="param in api_public_params">
+                        {{ param.name }}：<input type="text" v-model="param.value" class="form-control" >
+                    </div>
+                </div>
+
+                <div class="form-group"><label>---------参数---------</label></div>
+
+                <div class="form-group" v-for="param in paramlist">
+                    {{ param.name }}：<input type="text" v-model="param.sample" class="form-control" />
+                </div>
+
+                <!--  <form action="{{intfName.url}}" method="{{intfName.method}}"> -->
+                <!--<div class="form-group" ng-repeat="param in intfName.param">-->
+                <!--{{param.name}}-<label>{{param.optional===true?'':'[必填]'}}</label>-->
+                <!--<pre>{{param.desc}}</pre>-->
+                <!--<textarea ng-model="param.value" class="form-control" rows="10" ng-if="param.ui=='textarea'"></textarea>-->
+                <!--<input type="text" class="form-control" ng-model="param.value"  ng-if="param.ui!=='textarea'"/>-->
+                <!--</div>-->
                 <!--<div class="form-group">cid<input type="text"/>uid<input type="text"/>webkey<input type="text"/></div>-->
-                <button type="submit" class="btn btn-primary" ng-click="callIntf();">提交</button> 
+                <button type="submit" class="btn btn-primary" v-on:click="callApi();">提交</button>
                 <br/><br/><br/><br/><br/>
                 <!--  </form> -->
-                
+
                 <!-- -- -->
             </div>
 
             <!-- 结果 -->
             <div class="col-md-6">
+                <label>URL: {{ url }}/{{ version }}/{{ object }}/{{ method }}</label>
+
+
+                <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                    <tr><th>公用参数</th><th>类型</th><th>是否必填</th><th>最大长度</th>
+                        <th>描述 <button type="button" class="btn btn-info" v-on:click="custom_headers_table_show = !custom_headers_table_show"> 点击(隐藏/展示)公用参数</button></th>
+                        <th>示例值</th>
+                    </tr>
+                    </thead>
+                    <tbody v-if="custom_headers_table_show">
+                    <tr v-for="param in api_public_params"><td>{{ param.name }}</td><td>{{ param.datatype }}</td><td>{{ param.require | bool2str('是', '否') }}</td><td>{{ param.maxlen }}</td><td>{{ param.remark }}</td><td>{{ param.sample }}</td></tr>
+                    </tbody>
+                </table>
+
+                <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                    <tr><th>参数</th><th>类型</th><th>是否必填</th><th>最大长度</th><th>描述</th><th>示例值</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="param in paramlist"><td>{{ param.name }}</td><td>{{ param.datatype }}</td><td>{{ param.require | bool2str('是', '否') }}</td><td>{{ param.maxlen }}</td><td>{{ param.remark }}</td><td>{{ param.sample }}</td></tr>
+                    </tbody>
+                </table>
                 <div class="form-group">
                     <label>结果返回</label>
-                    <textarea ng-model="intfName.result" class="form-control" rows="20" readonly></textarea>
+                    <pre id="json-renderer"></pre>
+                    
                 </div>
             </div>
         </div>
+        <!-- footer -->
+        <br/><br/><br/>
+        <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation" style="text-align:center; display:table-cell; vertical-align:middle;">  &copy; <a href='https://www.dolabank.com'>多啦聚财</a></nav>
     </div>
-    <!-- footer -->
-    <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation" style="text-align:center; display:table-cell; vertical-align:middle;">  &copy; <a href='https://github.com/cbcfrank/apibox'>https://github.com/cbcfrank/apibox</a></nav>
+
+</div>
+
 </body>
 </html>
 <script>
-(function(){
-    var app = angular.module('ApiBox',[]);
-  	var uri = 'http://yourdomain';
-/*
+    (function(){
 
-    app.filter('nl2br', function() {
-        var span = document.createElement('span');
-        return function(input) {
-            if (!input) return input;
-            var lines = input.split('\n');
-
-            for (var i = 0; i < lines.length; i++) {
-                span.innerText = lines[i];
-                span.textContent = lines[i];  //for Firefox
-                lines[i] = span.innerHTML;
+        Vue.filter('bool2str', function(bool, yes_str, no_str) {
+            //console.log(bool)
+            if (bool===true) {
+                return yes_str
             }
-            return lines.join('<br />');
+            return no_str
+        });
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                domain: '',
+                url: '',
+                version: '',
+                http_method: 'GET',
+                custom_headers: [],
+                custom_headers_show: false,
+                custom_headers_table_show: true,
+                object: '',
+                objectlist: [],
+                apilist: [],
+                api_public_params: [],
+                api_public_params_show: false,
+                method: '',
+                methodlist: [],
+                paramlist: [],
+//            resp_data:'',
+//            resp_data_dec:'',
+                encryption_key:'',
+                current_proj:'apigateway',
+            },
+            computed:{},
+            watch: {
+                object: function(object){
+                    this.method = this.apilist[object][0]['name']
+                    this.methodlist = this.apilist[object]
+                },
+                method: function (method) {
+                    for(vo in this.methodlist) {
+                        if (this.methodlist[vo]['name']==method) {
+                            this.paramlist = this.methodlist[vo]['params']
+                            if (this.methodlist[vo]['http_method'] != undefined) {
+                                this.http_method = this.methodlist[vo]['http_method']
+                            } else {
+                                this.http_method = 'GET'
+                            }
+                        }
+                    }
+                }
+            },
+            methods: {
+                change_proj: function (proj_name) {
+                    //console.log(proj_name)
+                    loadJson(proj_name);
+                },
+                callApi: function () {
+                    var apiurl = this.url+ '/' + this.version + '/' + this.object + '/' +  this.method
+                    console.log(apiurl)
+//                console.log(this.custom_headers, this.api_public_params, this.paramlist)
+
+                    var headers = {}
+                    for (i in this.custom_headers) {
+                        headers[this.custom_headers[i].name] = this.custom_headers[i].value
+                    }
+
+                    var params = {}
+                    for (i in this.api_public_params) {
+                        params[this.api_public_params[i].name] = this.api_public_params[i].value
+                    }
+
+                    // 网关涉及到加密，单独处理
+                    if (this.current_proj=='apigateway') {
+
+                        params['sn'] =  (new Date()).valueOf() //new Date().getTime()
+
+                        params['params'] = {}
+                        for (i in this.paramlist) {
+                            //params['params'][this.paramlist[i].name] = this.paramlist[i].value
+                            params['params'][this.paramlist[i].name] = this.paramlist[i].sample
+                        }
+
+                        console.log(headers, params)
+
+                        var req_obj = {
+                            params: {
+                                data: encrypt(headers['X-Dola-Code'], JSON.stringify(params), 'kkk')
+                            },
+                            headers: headers
+                        }
+
+                        if (this.http_method=='POST') {
+                            axios.post(apiurl, null, req_obj).then(process_resp).catch(process_resp_error);
+                        } else {
+                            axios.get(apiurl, req_obj).then(process_resp).catch(process_resp_error);
+                        }
+
+                        /*
+                         axios.get(apiurl, {
+                         params: {
+                         data: encrypt(headers['X-Dola-Code'], JSON.stringify(params), 'kkk')
+                         },
+                         headers: headers
+                         }).then(function (response) {
+                         console.log(response)
+
+                         if ((typeof response.data) == 'object') {
+                         $('#json-renderer').jsonViewer(response.data)
+                         }
+
+                         //console.log(decrypt(response.headers['x-dola-edoc'], response.data, 'kkk'));
+                         //console.log(JSON.parse(decrypt(response.headers['x-dola-edoc'], response.data, 'kkk')));
+                         //console.log(JSON.parse(JSON.parse(decrypt(response.headers['x-dola-edoc'], response.data, 'kkk'))));
+
+                         //$('#json-renderer').jsonViewer(decrypt(response.headers['x-dola-edoc'], response.data, 'kkk'));
+                         $('#json-renderer').jsonViewer(JSON.parse(decrypt(response.headers['x-dola-edoc'], response.data, 'kkk')));
+                         //$('#json-renderer').jsonViewer(JSON.parse(JSON.parse(decrypt(response.headers['x-dola-edoc'], response.data, 'kkk'))));
+                         }).catch(function (error) {
+                         console.log(error);
+                         }) */
+                    } else { //内部项目交互
+
+                        var param_str = ''
+
+                        for (i in this.paramlist) {
+                            params[this.paramlist[i].name] = this.paramlist[i].sample
+                        }
+
+                        //console.log(this.encryption_key, params)
+                        //for (var i in params)  console.log(i, params[i])
+
+
+                        var new_params = ksort(params)
+                        //console.log(this.encryption_key, new_params)
+                        //for (var i in new_params)  console.log(i, new_params[i])
+
+                        delete new_params['_sign']
+
+                        param_str = http_build_query(new_params)
+                        //console.log(param_str)
+
+                        //new_params['_sign'] = hex_md5(param_str)
+                        new_params['_sign'] = hex_hmac_md5(this.encryption_key, param_str)
+                        param_str = http_build_query(new_params)
+                        //console.log(param_str)
+
+                        apiurl = apiurl + '?' + param_str
+                        console.log(apiurl)
+
+                        axios.get(apiurl, {
+                            headers: headers
+                        }).then(function (response) {
+                            console.log(response)
+                            $('#json-renderer').jsonViewer(response.data)
+                        }).catch(function (error) {
+                            console.log(error);
+                        })
+                    }
+
+                }
+            },
+            beforeCreate:function(){
+                //loadJson(app.current_proj);
+                loadJson('demo');
+            }
+        });
+
+        //处理正确响应
+        function process_resp(response) {
+            console.log(response);
+
+            if ((typeof response.data) == 'object') {
+                $('#json-renderer').jsonViewer(response.data)
+            }
+
+            $('#json-renderer').jsonViewer(JSON.parse(decrypt(response.headers['x-dola-edoc'], response.data, 'kkk')));
         }
-    });
 
-    app.filter('breakFilter', function() {
-        return function(text) {
-            return text ? text.replace(/\n/g, '<br />') : '';
+        //处理错误响应
+        function process_resp_error(error) {
+            console.log(error);
         }
-    });
-*/
 
-    app.controller('intfController', function($scope, $http,  $log, $location){
+        function loadJson(proj_name){
+            axios.get('json/'+proj_name+'.json').then(function(response){
+                // 响应成功回调
+                //console.log(response)
+                //console.log(response.data.domain)
+                //console.log(app.current_proj)
 
-        //api对象
-        $scope.intf_object = [
-            {id:1, name:'Topic', text:'Topic(文章主题)', seq:1},
-            {id:2, name:'Author', text:'Author(作者)', seq:2},
-
-        ];
-
-        //api 名称，接口名称
-        $scope.intf_name = {
-            1:[
-	            {id:1001,  name: 'list topic(文章主题列表)', url:'/Topic/list', method: 'GET', desc:'Here is description.(这里可以放该接口的介绍)',
-	            		   param:[
-             					{name:'page', desc:'page(当前页数)，如不填默认为1', optional:true, value:''},
-             					{name:'pagesize', desc:'pagesize(每页显示的条数)', optional:false, value:'20'}
-         				   ], result:''},
-	            {id:1002,  name: 'new topic(创建新的主题)', url:'/Topic/new', method: 'POST', desc:'',
-       		   			   param:[
-                               {name:'name', desc:'主题名称', optional:false, value:''},
-                               {name:'author', desc:'主题作者', optional:false, value:''},
-                               {name:'content', desc:'正文', optional:false, value:''},
-   				   		   ], result:''},
-	       	  ],
-            2:[
-               {id:2001,  name: 'search author(检索作者)', url:'/Author/search', method: 'GET', desc:'',
-                   param:[
-                       {name:'author', desc:'author name (作者名称)', optional:false, value:''},
-                   ],result:''},
-               {id:2002,  name: 'like author(点赞作者)', url:'/Author/like', method: 'GET', desc:'',
-                   param:[
-                       {name:'authorid', desc:'作者ID', optional:false, value:''},
-                       {name:'readerid', desc:'读者ID', optional:false, value:''}
-                   ],result:''}
-           ],
-        };
-
-        // 调用接口
-        $scope.callIntf = function(){       	
-        	var postparamstr = {};
-            angular.forEach($scope.intfName.param, function(value, key) {
-            	postparamstr[value.name] = value.value;
+                app.current_proj = response.data.name
+                app.domain = response.data.domain.slice(0, response.data.domain.indexOf('.')) + '.' + window.location.hostname.slice(4);
+                app.url = response.data.url.replace(response.data.domain, app.domain)
+                app.version = response.data.version
+                app.custom_headers = response.data.custom_headers
+                app.object = response.data.object[0].value
+                app.objectlist = response.data.object
+                app.apilist = response.data.apilist
+                app.api_public_params = response.data.api_public_params
+            }).catch(function (error) {
+                //console.log(error);
             });
-            console.log(postparamstr);
-            console.log(angular.toJson(postparamstr));
-            console.log($.param(postparamstr));
+        }
 
-            var res = '-------------URL------------- \n' + $location.absUrl() + $scope.intfName.url;
-            res = res + '\n\n -------------method------------\n' + $scope.intfName.method;                                
-            res = res + '\n\n -------------param-------------\n' + angular.toJson(postparamstr, true);  
-            $scope.intfName.result = res;
+    })();
 
 
-            $http({method: $scope.intfName.method, url: uri+$scope.intfName.url, params:postparamstr}).success(function(data, status, headers, config) {
-            //$http({method: $scope.intfName.method, url: uri+$scope.intfName.url, data:$.param(postparamstr), headers:{'Content-Type': 'application/x-www-form-urlencoded'}}).success(function(data, status, headers, config) {
-                $scope.intfName.result = $scope.intfName.result + '\n\n -------------result-------------\n' + angular.toJson(data, true);;
-            }).error(function(data, status, headers, config) {
-                $scope.intfName.result = $scope.intfName.result + '\n\n -------------result-------------\n' + angular.toJson(data, true);
-            });            
-            /*
-            switch ($scope.intfName.method){
-                case 'GET':
-                    $http.get(uri+$scope.intfName.url+'?'+postparamstr).success(function(data, status, headers, config) {
-                                $scope.intfName.result = $scope.intfName.result + '\n\n -------------result-------------\n' + angular.toJson(data, true);;
-                            }).error(function(data, status, headers, config) {
-                                $scope.intfName.result = $scope.intfName.result + '\n\n -------------result-------------\n' + angular.toJson(data, true);
-                            });
-                    break;
-                case 'POST':
-                    break;
-                case 'PUT':
-                    break;
-                case 'DELETE':
-                    break;
-            }
-            */
-        };
 
-        //$scope.intfObject = $scope.intf_object[1];
-        $scope.intfObject = [];
-        $scope.intfName = [];
-        //$scope.intfParam = '';
-        //$scope.intfResult = '还未调用';
-    });
 
-    console.log("I'm from https://github.com/cbcfrank/apibox . Hope can help you!");
-})();
 </script>

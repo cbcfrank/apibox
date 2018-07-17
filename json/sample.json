@@ -1,0 +1,33 @@
+{
+  "name": "sample",
+  "domain": "sample.mydomain.dev",
+  "url": "https://sample.mydomain.dev/api",
+  "version": "",
+  "object": [
+    {"text": "用户", "value": "user"}
+  ],
+
+  "custom_headers":[],
+
+  "api_public_params":[
+    {"name": "_from", "require":true, "datatype":"string", "maxlen":"/", "sample":"demo", "remark":"从哪个项目调用过来，比如 demo"},
+    {"name": "_t", "require":true, "datatype":"string", "maxlen":"/", "sample":"1502642678", "remark":"时间戳"},
+    {"name": "_sign", "require":true, "datatype":"string", "maxlen":"/", "sample":"04159afa219c56abc29eca1a8dc018dd", "remark":"内部的api访问需做简单的签名校验（sign，方式是将get方式的参数 按字母顺序排列并组成串后用指定key加密，[key是由不同项目为其他项目指定的，做到每个key都不相同]） 如： a=1&b=2&c=3&d=4 后用 hash_hmac 方式生成sign=>    a=1&b=2&c=3&d=4&sign=签名"}
+  ],
+
+  "apilist": {
+
+    "user": [
+      {"name":"detail", "text":"用户中心（用户明细）",
+        "params":[
+          {"name": "token", "require":true, "datatype":"int", "maxlen":"/", "sample":"", "remark":"token"}
+      ]},
+      {"name":"login", "text":"用户登录",
+        "params":[
+          {"name": "mobile", "require":true, "datatype":"string", "maxlen":"11", "sample":"13800138000", "remark":"登录手机的号码"},
+          {"name": "passwd", "require":true, "datatype":"string", "maxlen":"/", "sample":"123456", "remark":"登录密码"}
+        ]
+      }
+    ]
+  }
+}
