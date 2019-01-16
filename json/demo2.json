@@ -1,0 +1,81 @@
+{
+  "name": "demo2",
+  "domain": "demo.mydomain.dev",
+  "url": "https://demo.mydomain.dev/api",
+  "version": "v1",
+  "version_list": ["v1","v2"],
+  "object": {
+    "v1": [
+      {"text": "文章主题", "value": "topic"},
+      {"text": "作者", "value": "author"}
+    ],
+    "v2": [
+      {"text": "作者", "value": "author"},
+      {"text": "文章主题", "value": "topic"}
+    ]
+  },
+
+  "custom_headers":[],
+
+  "api_public_params":[
+    {"name": "_from", "require":true, "datatype":"string", "maxlen":"/", "sample":"sample", "remark":"从哪个项目调用过来，比如 sample"},
+    {"name": "_t", "require":true, "datatype":"string", "maxlen":"/", "sample":"1502642678", "remark":"时间戳"},
+    {"name": "_sign", "require":true, "datatype":"string", "maxlen":"/", "sample":"04159afa219c56abc29eca1a8dc018dd", "remark":"内部的api访问需做简单的签名校验（sign，方式是将get方式的参数 按字母顺序排列并组成串后用指定key加密，[key是由不同项目为其他项目指定的，做到每个key都不相同]） 如： a=1&b=2&c=3&d=4 后用 hash_hmac 方式生成sign=>    a=1&b=2&c=3&d=4&sign=签名"}
+  ],
+
+  "apilist": {
+
+    "v1":{
+      "topic": [
+        {"name":"list", "text":"文章主题列表", "http_method":"GET", "params":[
+          {"name": "page", "require":true, "datatype":"int", "maxlen":"/", "sample":"1", "remark":"当前页数,如不填默认为1"},
+          {"name": "pagesize", "require":false, "datatype":"int", "maxlen":"/", "sample":"10", "remark":"每页显示的条数"}
+        ]},
+        {"name":"new", "text":"创建新的主题", "http_method":"GET", "params":[
+          {"name": "name", "require":true, "datatype":"string", "maxlen":"50", "sample":"论程序员的一生", "remark":"主题名称"},
+          {"name": "author", "require":true, "datatype":"string", "maxlen":"20", "sample":"佚名", "remark":"主题作者"},
+          {"name": "content", "require":true, "datatype":"string", "maxlen":"3000", "sample":"此处是正文", "remark":"正文"}
+        ]}
+      ],
+      "author": [
+        {"name":"search", "text":"检索作者",
+          "params":[
+            {"name": "author", "require":true, "datatype":"string", "maxlen":"20", "sample":"佚名", "remark":"作者名称"}
+          ]
+        },
+        {"name":"like", "text":"点赞作者",
+          "params":[
+            {"name": "authorid", "require":true, "datatype":"int", "maxlen":"/", "sample":"1", "remark":"作者ID"},
+            {"name": "readerid", "require":true, "datatype":"int", "maxlen":"/", "sample":"52", "remark":"读者ID"}
+          ]
+        }
+      ]
+    },
+    "v2":{
+      "topic": [
+        {"name":"list", "text":"文章主题列表", "http_method":"GET", "params":[
+          {"name": "page", "require":true, "datatype":"int", "maxlen":"/", "sample":"1", "remark":"当前页数,如不填默认为1"},
+          {"name": "pagesize", "require":false, "datatype":"int", "maxlen":"/", "sample":"10", "remark":"每页显示的条数"}
+        ]},
+        {"name":"new", "text":"创建新的主题", "http_method":"GET", "params":[
+          {"name": "name", "require":true, "datatype":"string", "maxlen":"50", "sample":"论程序员的一生", "remark":"主题名称"},
+          {"name": "author", "require":true, "datatype":"string", "maxlen":"20", "sample":"佚名", "remark":"主题作者"},
+          {"name": "content", "require":true, "datatype":"string", "maxlen":"3000", "sample":"此处是正文", "remark":"正文"}
+        ]}
+      ],
+      "author": [
+        {"name":"search", "text":"检索作者",
+          "params":[
+            {"name": "author", "require":true, "datatype":"string", "maxlen":"20", "sample":"佚名", "remark":"作者名称"}
+          ]
+        },
+        {"name":"like", "text":"点赞作者",
+          "params":[
+            {"name": "authorid", "require":true, "datatype":"int", "maxlen":"/", "sample":"1", "remark":"作者ID"},
+            {"name": "readerid", "require":true, "datatype":"int", "maxlen":"/", "sample":"52", "remark":"读者ID"}
+          ]
+        }
+      ]
+    }
+  }
+}

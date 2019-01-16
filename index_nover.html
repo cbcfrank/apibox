@@ -37,8 +37,8 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
             <ul class="nav navbar-nav">
-                <li v-bind:class="{ active: current_proj=='demo2' }" v-on:click="change_proj('demo2')"><a href="#">DEMO</a></li>
-                <li v-bind:class="{ active: current_proj=='sample2' }" v-on:click="change_proj('sample2')"><a href="#">SAMPLE</a></li>
+                <li v-bind:class="{ active: current_proj=='demo' }" v-on:click="change_proj('demo')"><a href="#">DEMO</a></li>
+                <li v-bind:class="{ active: current_proj=='sample' }" v-on:click="change_proj('sample')"><a href="#">SAMPLE</a></li>
             </ul>
         </div><!-- /.navbar-collapse -->
     </nav>
@@ -47,15 +47,6 @@
         <div class="row">
             <div class="col-md-4">
                 <!-- main -->
-                <div class="form-group">
-                    <label>版本</label>
-                    <select v-model="version" class="form-control">
-                        <option v-for="ver in versionlist" v-bind:value="ver">
-                            {{ ver }}
-                        </option>
-                    </select>
-                </div>
-
                 <div class="form-group">
                     <label>资源对象</label>
                     <select v-model="object" class="form-control">
@@ -156,13 +147,13 @@
                 <div class="form-group">
                     <label>结果返回</label>
                     <pre id="json-renderer"></pre>
-
+                    
                 </div>
             </div>
         </div>
         <!-- footer -->
         <br/><br/><br/>
-        <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation" style="text-align:center; display:table-cell; vertical-align:middle;"> apibox </nav>
+        <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation" style="text-align:center; display:table-cell; vertical-align:middle;"> </nav>
     </div>
 
 </div>
@@ -186,13 +177,11 @@
                 domain: '',
                 url: '',
                 version: '',
-                versionlist: [],
                 http_method: 'GET',
                 custom_headers: [],
                 custom_headers_show: false,
                 custom_headers_table_show: true,
                 object: '',
-                objects: {},
                 objectlist: [],
                 apilist: [],
                 api_public_params: [],
@@ -203,25 +192,13 @@
 //            resp_data:'',
 //            resp_data_dec:'',
                 encryption_key:'',
-                current_proj:'demo',
+                current_proj:'apigateway',
             },
             computed:{},
             watch: {
-                version: function(version){
-                    if (this.objects[version] === undefined) return;
-                    //console.log(this.objects)
-                    //console.log(this.objects[version][0])
-                    this.object = this.objects[version][0]['value']
-                    this.objectlist = this.objects[version]
-
-                },
                 object: function(object){
-                    for(vo in this.objectlist) {
-                        if (this.objectlist[vo]['value']==object) {
-                            this.method = this.apilist[this.version][object][0]['name']
-                            this.methodlist = this.apilist[this.version][object]
-                        }
-                    }
+                    this.method = this.apilist[object][0]['name']
+                    this.methodlist = this.apilist[object]
                 },
                 method: function (method) {
                     for(vo in this.methodlist) {
@@ -239,7 +216,6 @@
             methods: {
                 change_proj: function (proj_name) {
                     //console.log(proj_name)
-                    app.version = ''
                     loadJson(proj_name);
                 },
                 callApi: function () {
@@ -349,7 +325,7 @@
             },
             beforeCreate:function(){
                 //loadJson(app.current_proj);
-                loadJson('demo2');
+                loadJson('demo');
             }
         });
 
@@ -380,12 +356,9 @@
                 app.domain = response.data.domain.slice(0, response.data.domain.indexOf('.')) + '.' + window.location.hostname.slice(4);
                 app.url = response.data.url.replace(response.data.domain, app.domain)
                 app.version = response.data.version
-                //app.version = response.data.version_list[0]
-                app.versionlist = response.data.version_list
                 app.custom_headers = response.data.custom_headers
-                app.object = {}
-                app.objects = response.data.object
-                app.objectlist = []
+                app.object = response.data.object[0].value
+                app.objectlist = response.data.object
                 app.apilist = response.data.apilist
                 app.api_public_params = response.data.api_public_params
             }).catch(function (error) {
